@@ -36,9 +36,6 @@ Suite 120, Rockville, Maryland 20850 USA.
 qboolean	refHeadless;
 glconfig_t  glConfig;
 glRefConfig_t glRefConfig;
-qboolean    textureFilterAnisotropic = qfalse;
-int         maxAnisotropy = 0;
-float       displayAspect = 0.0f;
 
 glstate_t	glState;
 
@@ -146,6 +143,7 @@ cvar_t  *r_deluxeMapping;
 cvar_t  *r_parallaxMapping;
 cvar_t  *r_cubeMapping;
 cvar_t  *r_cubemapSize;
+cvar_t  *r_deluxeSpecular;
 cvar_t  *r_pbr;
 cvar_t  *r_baseNormalX;
 cvar_t  *r_baseNormalY;
@@ -270,8 +268,6 @@ int		max_polybuffers;
 */
 static void InitOpenGL( void )
 {
-	char renderer_buffer[1024];
-
 	//
 	// initialize OS specific portions of the renderer
 	//
@@ -287,11 +283,10 @@ static void InitOpenGL( void )
 	{
 		GLint		temp;
 		
-		GLimp_Init( qtrue );
+		GLimp_Init( qfalse );
 		GLimp_InitExtraExtensions();
 
-		strcpy( renderer_buffer, glConfig.renderer_string );
-		Q_strlwr( renderer_buffer );
+		glConfig.textureEnvAddAvailable = qtrue;
 
 		// OpenGL driver constants
 		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
@@ -301,6 +296,16 @@ static void InitOpenGL( void )
 		if ( glConfig.maxTextureSize <= 0 ) 
 		{
 			glConfig.maxTextureSize = 0;
+		}
+
+		qglGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, &temp );
+		glConfig.numTextureUnits = temp;
+
+		// reserve 160 components for other uniforms
+		qglGetIntegerv( GL_MAX_VERTEX_UNIFORM_COMPONENTS, &temp );
+		glRefConfig.glslMaxAnimatedBones = Com_Clamp( 0, IQM_MAX_JOINTS, ( temp - 160 ) / 16 );
+		if ( glRefConfig.glslMaxAnimatedBones < 12 ) {
+			glRefConfig.glslMaxAnimatedBones = 0;
 		}
 	}
 
@@ -1127,7 +1132,7 @@ void GfxInfo_f( void )
 	}
 	ri.Printf( PRINT_ALL, "\n" );
 	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_SIZE: %d\n", glConfig.maxTextureSize );
-	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_UNITS_ARB: %d\n", glConfig.numTextureUnits );
+	ri.Printf( PRINT_ALL, "GL_MAX_TEXTURE_IMAGE_UNITS: %d\n", glConfig.numTextureUnits );
 	ri.Printf( PRINT_ALL, "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
 	ri.Printf( PRINT_ALL, "MODE: %d, %d x %d %s hz:", r_mode->integer, glConfig.vidWidth, glConfig.vidHeight, fsstrings[r_fullscreen->integer == 1] );
 	if ( glConfig.displayFrequency )
@@ -1309,6 +1314,7 @@ void R_Register( void )
 	r_parallaxMapping = ri.Cvar_Get( "r_parallaxMapping", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_cubeMapping = ri.Cvar_Get( "r_cubeMapping", "0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_cubemapSize = ri.Cvar_Get( "r_cubemapSize", "128", CVAR_ARCHIVE | CVAR_LATCH );
+	r_deluxeSpecular = ri.Cvar_Get("r_deluxeSpecular", "0.3", CVAR_ARCHIVE | CVAR_LATCH);
 	r_pbr = ri.Cvar_Get("r_pbr", "0", CVAR_ARCHIVE | CVAR_LATCH);
 	r_baseNormalX = ri.Cvar_Get( "r_baseNormalX", "1.0", CVAR_ARCHIVE | CVAR_LATCH );
 	r_baseNormalY = ri.Cvar_Get( "r_baseNormalY", "1.0", CVAR_ARCHIVE | CVAR_LATCH );
@@ -1664,6 +1670,7 @@ void RE_Shutdown( qboolean destroyWindow ) {
 		GLimp_Shutdown();
 
 		Com_Memset( &glConfig, 0, sizeof( glConfig ) );
+		Com_Memset( &glRefConfig, 0, sizeof( glRefConfig ) );
 		Com_Memset( &glState, 0, sizeof( glState ) );
 	}
 

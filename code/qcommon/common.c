@@ -44,7 +44,7 @@ Suite 120, Rockville, Maryland 20850 USA.
 // List of demo protocols that are supported for playback.
 // Also plays protocol com_protocol
 int demo_protocols[] =
-{ PROTOCOL_VERSION, 10, /* 6,7,8,9 were skipped */ 5, 4, 3, 2, 0 };
+{ PROTOCOL_VERSION, 11, 10, /* 6,7,8,9 were skipped */ 5, 4, 3, 2, 0 };
 
 #define MAX_NUM_ARGVS	50
 
@@ -1393,11 +1393,10 @@ void Com_Meminfo_f( void ) {
 	memblock_t	*block;
 	int			zoneBytes, zoneBlocks;
 	int			smallZoneBytes;
-	int			botlibBytes, rendererBytes;
+	int			rendererBytes;
 	int			unused;
 
 	zoneBytes = 0;
-	botlibBytes = 0;
 	rendererBytes = 0;
 	zoneBlocks = 0;
 	for (block = mainzone->blocklist.next ; ; block = block->next) {
@@ -1413,9 +1412,7 @@ void Com_Meminfo_f( void ) {
 		if ( block->tag ) {
 			zoneBytes += block->size;
 			zoneBlocks++;
-			if ( block->tag == TAG_BOTLIB ) {
-				botlibBytes += block->size;
-			} else if ( block->tag == TAG_RENDERER ) {
+			if ( block->tag == TAG_RENDERER ) {
 				rendererBytes += block->size;
 			}
 		}
@@ -1473,9 +1470,8 @@ void Com_Meminfo_f( void ) {
 	Com_Printf( "%8i unused highwater\n", unused );
 	Com_Printf( "\n" );
 	Com_Printf( "%8i bytes in %i zone blocks\n", zoneBytes, zoneBlocks	);
-	Com_Printf( "        %8i bytes in dynamic botlib\n", botlibBytes );
 	Com_Printf( "        %8i bytes in dynamic renderer\n", rendererBytes );
-	Com_Printf( "        %8i bytes in dynamic other\n", zoneBytes - ( botlibBytes + rendererBytes ) );
+	Com_Printf( "        %8i bytes in dynamic other\n", zoneBytes - rendererBytes );
 	Com_Printf( "        %8i bytes in small Zone memory\n", smallZoneBytes );
 }
 
@@ -3741,6 +3737,7 @@ void Field_Clear( field_t *edit ) {
 }
 
 static const char *completionString;
+static char matchDisplayPrefix[MAX_TOKEN_CHARS];
 static char shortestMatch[MAX_TOKEN_CHARS];
 static int	matchCount;
 // field we are working on, passed to Field_AutoComplete(&g_consoleCommand for instance)
@@ -3752,8 +3749,12 @@ FindMatches
 
 ===============
 */
-static void FindMatches( const char *s ) {
+static void FindMatches( const char *match ) {
 	int		i;
+	char	s[MAX_TOKEN_CHARS];
+
+	Q_strncpyz( s, matchDisplayPrefix, sizeof( s ) );
+	Q_strcat( s, sizeof( s ), match );
 
 	if ( Q_stricmpn( s, completionString, strlen( completionString ) ) ) {
 		return;
@@ -3783,7 +3784,12 @@ PrintMatches
 
 ===============
 */
-static void PrintMatches( const char *s ) {
+static void PrintMatches( const char *match ) {
+	char s[MAX_TOKEN_CHARS];
+
+	Q_strncpyz( s, matchDisplayPrefix, sizeof( s ) );
+	Q_strcat( s, sizeof( s ), match );
+
 	if ( !Q_stricmpn( s, shortestMatch, strlen( shortestMatch ) ) ) {
 		Com_Printf( "    %s\n", s );
 	}
@@ -3795,8 +3801,12 @@ PrintCvarMatches
 
 ===============
 */
-static void PrintCvarMatches( const char *s ) {
+static void PrintCvarMatches( const char *match ) {
 	char value[ TRUNCATE_LENGTH ];
+	char s[MAX_TOKEN_CHARS];
+
+	Q_strncpyz( s, matchDisplayPrefix, sizeof( s ) );
+	Q_strcat( s, sizeof( s ), match );
 
 	if ( !Q_stricmpn( s, shortestMatch, strlen( shortestMatch ) ) ) {
 		Com_TruncateLongString( value, Cvar_VariableString( s ) );
@@ -3863,6 +3873,7 @@ void Field_CompleteKeyname( void )
 {
 	matchCount = 0;
 	shortestMatch[ 0 ] = 0;
+	matchDisplayPrefix[ 0 ] = 0;
 
 	Key_KeynameCompletion( FindMatches );
 
@@ -3876,14 +3887,40 @@ void Field_CompleteKeyname( void )
 Field_CompleteFilename
 ===============
 */
-void Field_CompleteFilename( const char *dir,
+void Field_CompleteFilename( const char *basedir,
 		const char *ext, qboolean stripExt, qboolean allowNonPureFilesOnDisk )
 {
+	char dir[MAX_TOKEN_CHARS];
 	char **pFiles;
-	int nFiles;
+	int nFiles, i, length;
 
 	matchCount = 0;
 	shortestMatch[ 0 ] = 0;
+	matchDisplayPrefix[ 0 ] = 0;
+
+	// search in basedir + / + directory typed so far but always have
+	// completion display directory typed so far
+	Q_strncpyz( dir, basedir, sizeof( dir ) );
+
+	if ( strchr( completionString, '/' ) != NULL ) {
+		Q_strncpyz( matchDisplayPrefix, completionString, sizeof( matchDisplayPrefix ) );
+
+		// get dirname with trailing slash
+		for ( i = strlen( matchDisplayPrefix ) - 1; i >= 0; i-- ) {
+			if ( matchDisplayPrefix[i] == '/' ) {
+				matchDisplayPrefix[i+1] = '\0';
+				break;
+			}
+		}
+	}
+
+	if ( matchDisplayPrefix[0] ) {
+		length = strlen( dir );
+		if ( length > 0 && dir[length-1] != '/' ) {
+			Q_strcat( dir, sizeof( dir ), "/" );
+		}
+		Q_strcat( dir, sizeof( dir ), matchDisplayPrefix );
+	}
 
 	pFiles = FS_GetFileList( dir, ext, &nFiles, allowNonPureFilesOnDisk );
 
@@ -3971,6 +4008,7 @@ void Field_CompleteCommand( const char *_cmd,
 
 		matchCount = 0;
 		shortestMatch[ 0 ] = 0;
+		matchDisplayPrefix[ 0 ] = 0;
 
 		if( strlen( completionString ) == 0 )
 			return;
@@ -4027,6 +4065,7 @@ void Field_CompleteList( const char *list )
 {
 	matchCount = 0;
 	shortestMatch[ 0 ] = 0;
+	matchDisplayPrefix[ 0 ] = 0;
 
 	if ( !list )
 		return;

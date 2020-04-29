@@ -39,7 +39,7 @@ Suite 120, Rockville, Maryland 20850 USA.
 
 // Keep this in-sync with VERSION in Makefile.
 #ifndef PRODUCT_VERSION
-	#define PRODUCT_VERSION			"0.6"
+	#define PRODUCT_VERSION			"1.0.2"
 #endif
 
 #define Q3_VERSION PRODUCT_NAME " " PRODUCT_VERSION
@@ -325,7 +325,7 @@ PROTOCOL
 ==============================================================
 */
 
-#define	PROTOCOL_VERSION	11
+#define	PROTOCOL_VERSION	12
 #define PROTOCOL_LEGACY_VERSION	0
 
 // maintain a list of compatible protocols for demo playing
@@ -618,6 +618,8 @@ void	Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize 
 // returns an empty string if not defined
 void	Cvar_LatchedVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
 // returns the latched value if there is one, else the normal one, empty string if not defined
+void	Cvar_DefaultVariableStringBuffer( const char *var_name, char *buffer, int bufsize );
+// returns the default value or empty string if not defined
 
 int	Cvar_Flags(const char *var_name);
 // returns CVAR_NONEXISTENT if cvar doesn't exist or the flags of that particular CVAR.
@@ -1039,7 +1041,6 @@ extern	fileHandle_t	com_journalDataFile;
 typedef enum {
 	TAG_FREE,
 	TAG_GENERAL,
-	TAG_BOTLIB,
 	TAG_RENDERER,
 	TAG_SMALL,
 	TAG_STATIC,
