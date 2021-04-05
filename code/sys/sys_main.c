@@ -58,6 +58,10 @@ Suite 120, Rockville, Maryland 20850 USA.
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 
+#ifdef USE_LIBAUTOUPDATE
+#include "autoupdate.h"
+#endif
+
 static char binaryPath[ MAX_OSPATH ] = { 0 };
 static char installPath[ MAX_OSPATH ] = { 0 };
 
@@ -716,6 +720,26 @@ void Sys_SigHandler( int signal )
 		Sys_Exit( 1 );
 	else
 		Sys_Exit( 2 );
+}
+
+/*
+=================
+Sys_SigHandler
+=================
+*/
+void Sys_AutoUpdate(int argc, char **argv) {
+#ifdef USE_LIBAUTOUPDATE
+	int result;
+#ifdef DEDICATED
+	char *path = "/dedicated/latest";
+#else
+	char *path = "/client/latest";
+#endif
+
+	result = autoupdate(argc, argv, AUTOUPDATE_HOST, 80, path, PRODUCT_VERSION, 0);
+
+	Com_Printf("Autoupdate returned with code %d\n", result);
+#endif
 }
 
 /*

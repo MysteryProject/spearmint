@@ -42,6 +42,10 @@ Suite 120, Rockville, Maryland 20850 USA.
 	#define PRODUCT_VERSION			"1.0.3"
 #endif
 
+#ifndef AUTOUPDATE_HOST
+	#define AUTOUPDATE_HOST			"1.0.3"
+#endif
+
 #define Q3_VERSION PRODUCT_NAME " " PRODUCT_VERSION
 
 // Settings directory name

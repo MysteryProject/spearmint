@@ -27,6 +27,10 @@ ifndef BUILD_AUTOUPDATER  # DON'T build unless you mean to!
   BUILD_AUTOUPDATER=0
 endif
 
+ifndef LIBAUTOUPDATE_HOST
+LIBAUTOUPDATE_HOST="localhost"
+endif
+
 #############################################################################
 #
 # If you require a different configuration from the defaults below, create a
@@ -237,6 +241,10 @@ ifndef USE_AUTOUPDATER  # DON'T include unless you mean to!
 USE_AUTOUPDATER=0
 endif
 
+ifndef USE_LIBAUTOUPDATE
+USE_LIBAUTOUPDATE=1
+endif
+
 ifndef DEBUG_CFLAGS
 DEBUG_CFLAGS=-ggdb -O0
 endif
@@ -270,6 +278,7 @@ TOMSFASTMATHSRCDIR=$(AUTOUPDATERSRCDIR)/rsa_tools/tomsfastmath-0.13.1
 NSISDIR=misc/nsis
 SDLHDIR=$(MOUNT_DIR)/SDL2
 LIBSDIR=$(MOUNT_DIR)/libs
+LIBAUTOUPDATEDIR=$(MOUNT_DIR)/libautoupdate-006f02c
 
 bin_path=$(shell which $(1) 2> /dev/null)
 
@@ -311,6 +320,8 @@ ifeq ($(SDL_CFLAGS),)
     SDL_LIBS = $(shell sdl2-config --libs)
   endif
 endif
+
+LIBAUTOUPDATE_FLAGS = -I${LIBAUTOUPDATEDIR}/include
 
 ifneq ($(BUILD_FINAL),1)
 
@@ -707,6 +718,9 @@ ifdef MINGW
     SDLDLL=SDL2.dll
   endif
 
+  ifeq ($(USE_LIBAUTOUPDATE), 1)
+    LIBS += -luuid -lole32
+  endif
 else # ifdef MINGW
 
 #############################################################################
@@ -967,6 +981,10 @@ endif #OpenBSD
 endif #NetBSD
 endif #IRIX
 endif #SunOS
+
+ifdef USE_LIBAUTOUPDATE
+BASE_CFLAGS += $(LIBAUTOUPDATE_FLAGS) -DAUTOUPDATE_HOST=$(LIBAUTOUPDATE_HOST)
+endif
 
 ifndef CC
   CC=gcc
@@ -1395,6 +1413,7 @@ endif
 
 makedirs:
 	@$(MKDIR) $(B)/autoupdater
+	@$(MKDIR) $(B)/client/libautoupdate
 	@$(MKDIR) $(B)/client/libmad
 	@$(MKDIR) $(B)/client/opus
 	@$(MKDIR) $(B)/client/vorbis
@@ -1402,6 +1421,7 @@ makedirs:
 	@$(MKDIR) $(B)/renderergl2
 	@$(MKDIR) $(B)/renderergl2/glsl
 	@$(MKDIR) $(B)/ded
+	@$(MKDIR) $(B)/ded/libautoupdate
 
 
 #############################################################################
@@ -1515,6 +1535,15 @@ Q3OBJ = \
   $(B)/client/con_log.o \
   $(B)/client/sys_autoupdater.o \
   $(B)/client/sys_main.o
+
+ifdef USE_LIBAUTOUPDATE
+  Q3OBJ += \
+    $(B)/client/libautoupdate/autoupdate.o \
+    $(B)/client/libautoupdate/exepath.o \
+    $(B)/client/libautoupdate/inflate.o \
+    $(B)/client/libautoupdate/tmpf.o \
+    $(B)/client/libautoupdate/utils.o
+endif
 
 ifdef MINGW
   Q3OBJ += \
@@ -2100,6 +2129,15 @@ Q3DOBJ = \
   $(B)/ded/sys_autoupdater.o \
   $(B)/ded/sys_main.o
 
+ifdef USE_LIBAUTOUPDATE
+  Q3DOBJ += \
+    $(B)/ded/libautoupdate/autoupdate.o \
+    $(B)/ded/libautoupdate/exepath.o \
+    $(B)/ded/libautoupdate/inflate.o \
+    $(B)/ded/libautoupdate/tmpf.o \
+    $(B)/ded/libautoupdate/utils.o
+endif
+
 ifneq ($(SERVER_USE_RENDERER_DLOPEN),1)
   Q3DOBJ += \
     $(B)/ded/sv_ref.o \
@@ -2222,6 +2260,9 @@ $(B)/client/%.o: $(OPUSFILEDIR)/src/%.c
 $(B)/client/%.o: $(ZDIR)/%.c
 	$(DO_CC)
 
+$(B)/client/libautoupdate/%.o: $(LIBAUTOUPDATEDIR)/src/%.c
+	$(DO_CC)
+
 $(B)/client/%.o: $(SDLDIR)/%.c
 	$(DO_CC)
 
@@ -2338,6 +2379,9 @@ $(B)/ded/%.o: $(SDIR)/%.c
 	$(DO_DED_CC)
 
 $(B)/ded/%.o: $(CMDIR)/%.c
+	$(DO_DED_CC)
+
+$(B)/ded/libautoupdate/%.o: $(LIBAUTOUPDATEDIR)/src/%.c
 	$(DO_DED_CC)
 
 $(B)/ded/%.o: $(ZDIR)/%.c
