@@ -31,6 +31,10 @@ ifndef LIBAUTOUPDATE_HOST
 LIBAUTOUPDATE_HOST="localhost"
 endif
 
+ifndef LIBAUTOUPDATE_PORT
+LIBAUTOUPDATE_PORT="80"
+endif
+
 #############################################################################
 #
 # If you require a different configuration from the defaults below, create a
@@ -320,8 +324,6 @@ ifeq ($(SDL_CFLAGS),)
     SDL_LIBS = $(shell sdl2-config --libs)
   endif
 endif
-
-LIBAUTOUPDATE_FLAGS = -I${LIBAUTOUPDATEDIR}/include
 
 ifneq ($(BUILD_FINAL),1)
 
@@ -983,7 +985,8 @@ endif #IRIX
 endif #SunOS
 
 ifdef USE_LIBAUTOUPDATE
-BASE_CFLAGS += $(LIBAUTOUPDATE_FLAGS) -DAUTOUPDATE_HOST=$(LIBAUTOUPDATE_HOST)
+BASE_CFLAGS += -I${LIBAUTOUPDATEDIR}/include -DAUTOUPDATE_HOST=$(LIBAUTOUPDATE_HOST) \
+  -DAUTOUPDATE_PORT=$(LIBAUTOUPDATE_PORT) -DUSE_LIBAUTOUPDATE
 endif
 
 ifndef CC

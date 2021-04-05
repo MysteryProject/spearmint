@@ -43,7 +43,11 @@ Suite 120, Rockville, Maryland 20850 USA.
 #endif
 
 #ifndef AUTOUPDATE_HOST
-	#define AUTOUPDATE_HOST			"1.0.3"
+	#define AUTOUPDATE_HOST			"localhost"
+#endif
+
+#ifndef AUTOUPDATE_PORT
+	#define AUTOUPDATE_PORT			"80"
 #endif
 
 #define Q3_VERSION PRODUCT_NAME " " PRODUCT_VERSION

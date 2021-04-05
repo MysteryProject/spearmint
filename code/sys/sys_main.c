@@ -731,14 +731,19 @@ void Sys_AutoUpdate(int argc, char **argv) {
 #ifdef USE_LIBAUTOUPDATE
 	int result;
 #ifdef DEDICATED
-	char *path = "/dedicated/latest";
+	char *pathPrefix = "/dedicated";
 #else
-	char *path = "/client/latest";
+	char *pathPrefix = "/client";
 #endif
+	char *path = va("%s/%s", pathPrefix, PLATFORM_STRING);
+	printf("Autoupdating %s\n", path);
+	fflush(stdout);
 
-	result = autoupdate(argc, argv, AUTOUPDATE_HOST, 80, path, PRODUCT_VERSION, 0);
+	// path = www.host.com/client/latest?platform=linux-x86_64
+	result = autoupdate(argc, (wchar_t **)argv, "marxydebian", "3000", path, PRODUCT_VERSION, 0);
 
-	Com_Printf("Autoupdate returned with code %d\n", result);
+	printf("Autoupdate returned with code %d\n", result);
+	fflush(stdout);
 #endif
 }
 
@@ -751,6 +756,10 @@ int main( int argc, char **argv )
 {
 	int   i;
 	char  commandLine[ MAX_STRING_CHARS ] = { 0 };
+
+	printf("Autoupdating..\n");
+	fflush(stdout);
+	Sys_AutoUpdate(argc, argv);
 
 	extern void Sys_LaunchAutoupdater(int argc, char **argv);
 	Sys_LaunchAutoupdater(argc, argv);
